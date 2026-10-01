@@ -1,16 +1,14 @@
-import asyncio
-from .llm import get_llm_instance
+from src.api.route import router
+from fastapi import FastAPI
 
 
-get_llm = get_llm_instance()
 
-if __name__ == "__main__":
+@router.get("/health", include_in_schema=False)
+async def health() -> dict[str, str]:
+    return {"status": "ok"}
 
-    async def main() -> None:
-        llm = get_llm
-        result = await llm.ainvoke(
-            "Do you offer a family plan that covers multiple patients under one account?"
-        )
-        print(result)
 
-    asyncio.run(main())
+app = FastAPI(title="Support Triage API", version="1.0.0")
+app.include_router(router)
+
+# Run with: uvicorn src.main:app --reload

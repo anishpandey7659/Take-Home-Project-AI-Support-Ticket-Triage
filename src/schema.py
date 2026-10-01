@@ -15,3 +15,14 @@ class TriageResult(BaseModel):
     suggested_reply: str = Field(
         description="Concise, professional reply addressing the user's issue."
     )
+
+
+class TriageRequest(BaseModel):
+    message: str = Field(
+        ...,
+        min_length=1,
+        max_length=10_000,
+        description="Raw support message to classify.",
+        examples=["My order arrived damaged and I want a refund."],
+    )
+
