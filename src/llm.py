@@ -5,7 +5,7 @@ from langchain_core.runnables import Runnable
 from langchain_groq import ChatGroq
 
 from .config import Settings, get_settings
-from .prompt import Prompt_V1
+from .prompt import PROMPT
 from .schema import TriageResult
 
 
@@ -36,7 +36,7 @@ class LLM:
             ]
         )
 
-        self._chain: Runnable = Prompt_V1 | self._structured_llm
+        self._chain: Runnable = PROMPT | self._structured_llm
 
     @property
     def llm(self) -> BaseChatModel:
