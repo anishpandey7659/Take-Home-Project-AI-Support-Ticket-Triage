@@ -13,3 +13,4 @@ wheels/
 test.py
 
 .env
+client/.streamlit/secrets.toml
