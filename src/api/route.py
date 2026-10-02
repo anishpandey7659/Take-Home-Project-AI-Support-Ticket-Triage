@@ -1,17 +1,14 @@
 import logging
-import asyncio
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
-from src.config import get_settings
-from src.llm import LLM, get_llm_instance
+from src.triage_queue import TriageQueue, get_triage_queue
 from src.schema import TriageResult,TriageRequest
 
 logger = logging.getLogger(__name__)
 
-settings = get_settings()
-MAX_CONCURRENCY = settings.max_concurrency
 
 router = APIRouter(prefix="/api/v1", tags=["triage"])
+
 
 @router.post(
     "/triage",
@@ -21,7 +18,7 @@ router = APIRouter(prefix="/api/v1", tags=["triage"])
 )
 async def triage(
     payload: TriageRequest,
-    llm: Annotated[LLM, Depends(get_llm_instance)],
+    llm: Annotated[TriageQueue, Depends(get_triage_queue)],
 ) -> TriageResult:
     message = payload.message.strip()
     if not message:
@@ -29,17 +26,17 @@ async def triage(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Message must not be blank.",
         )
-
+ 
     try:
-        return await llm.ainvoke(message)
+        return await llm.classify(message)  # goes through the shared queue
     except Exception:
-        # Both primary and fallback models failed (rate limit, bad output, etc.)
+        # Primary and fallback both failed (rate limit, bad output, etc.)
         logger.exception("Triage LLM call failed")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Failed to classify the message. Please try again.",
         )
-    
+
 @router.post(
     "/triage_all",
     response_model=list[TriageResult],
@@ -48,29 +45,28 @@ async def triage(
 )
 async def triage_all(
     payloads: list[TriageRequest],
-    llm: Annotated[LLM, Depends(get_llm_instance)],
+    llm: Annotated[TriageQueue, Depends(get_triage_queue)],
 ) -> list[TriageResult]:
-    # 1. Validate everything up front, before spending any LLM calls
+    # Validate everything up front, before spending any LLM calls
     messages = [p.message.strip() for p in payloads]
     if any(not m for m in messages):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Message must not be blank.",
         )
-
-    # 2. Limit how many calls are in flight at once
-    semaphore = asyncio.Semaphore(MAX_CONCURRENCY)
-
-    async def classify(message: str) -> TriageResult:
-        async with semaphore:
-            try:
-                return await llm.ainvoke(message)
-            except Exception:
-                logger.exception("Triage LLM call failed for message: %s", message)
-                raise HTTPException(
-                    status_code=status.HTTP_502_BAD_GATEWAY,
-                    detail=f"Failed to classify the message: {message}. Please try again.",
-                )
-
-    # 3. Run them concurrently; results keep the same order as the input
-    return await asyncio.gather(*(classify(m) for m in messages))
+ 
+    # All messages go through the same shared queue; results keep input order
+    results = await llm.classify(messages)
+ 
+    classified: list[TriageResult] = []
+    for message, result in zip(messages, results):
+        if isinstance(result, BaseException):
+            logger.error(
+                "Triage LLM call failed for message: %s", message, exc_info=result
+            )
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Failed to classify the message: {message}. Please try again.",
+            )
+        classified.append(result)
+    return classified

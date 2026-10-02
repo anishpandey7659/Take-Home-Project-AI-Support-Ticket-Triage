@@ -2,14 +2,20 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import SecretStr
 
 class Settings(BaseSettings):
-    groq_api_key: SecretStr
-    groq_api_key2: SecretStr
-    groq_model: str
-    groq_model2: str
+    groq_api_key: SecretStr = SecretStr("")
+    groq_api_key2: SecretStr = SecretStr("")
+    groq_model: str = ''
+    groq_model2: str = ''
 
+    rpm: int = 30
+    max_concurrency: int = 2
+    max_attempts: int = 4
     default_temperature: float = 0.1
-
-    max_concurrency: int = 5
+    
+    @property
+    def cooldown(self) -> float:
+        return 60 / self.rpm * self.max_concurrency
+    
 
     model_config = SettingsConfigDict(
         env_file=".env",
