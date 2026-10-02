@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from typing import cast, overload
 from functools import lru_cache
 from langchain_groq import ChatGroq
@@ -7,7 +8,7 @@ from .config import get_settings
 from .prompt import PROMPT
 from .schema import TriageResult
 
-
+logger = logging.getLogger(__name__)
 
 def make_slot(api_key: SecretStr, model: str):
     """One API key + model = (structured-output chain, semaphore)."""
@@ -78,8 +79,10 @@ class TriageQueue:
             await sem.acquire()
             try:
                 result = await chain.ainvoke({"message": message})
+                logger.info("Processed: %s -> %s", message[:60], result)
                 return cast(TriageResult, result)
             except Exception:
+                logger.error("Failed to process: %s", message[:60])
                 await asyncio.sleep(attempt)  # backoff, then try the other model
             finally:
                 # Rate limit: free the slot only after the cooldown.
@@ -93,21 +96,5 @@ def get_triage_queue() -> TriageQueue:
     return TriageQueue()  # singleton for the app
 
 
-async def main():
-    llm = get_triage_queue()
-
-    print(await llm.classify("The pill scanner stopped recognising my father's medications after the latest update. It worked fine last week."))  # single message
-
-    # messages = [f"Test message {i}" for i in range(1, 21)]  # list of messages
-    # results = await llm.classify(messages)
-    # for msg, res in zip(messages, results):
-    #     if isinstance(res, BaseException):
-    #         print(msg, "FAILED:", res)
-    #     else:
-    #         print(msg, "->", res)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
 
 # python -m src.triage_queue
