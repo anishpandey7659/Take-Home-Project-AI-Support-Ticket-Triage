@@ -169,6 +169,7 @@ class TriageQueue:
                         {"message": message},
                         config={"metadata": {"request_id": rid, "worker": slot.name}},
                     )
+                    logger.info("Message: %s | Output: %s", message, result)
                 except Exception as e:
                     # primary AND fallback both failed on this worker
                     if attempt + 1 < self.max_attempts:

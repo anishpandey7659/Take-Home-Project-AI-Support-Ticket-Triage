@@ -16,46 +16,45 @@ You must produce:
 3. sentiment
 4. suggested_reply
 
+
 URGENCY:
-- Critical: The message states that one of these is happening now or has already happened:
-  - Account compromise or unauthorized access (e.g., "someone logged into my account", "I see charges I didn't make")
-  - Data loss or data exposure, including data the customer says has disappeared, vanished, been deleted, or is gone. Treat the customer's statement as sufficient; do not require proof of the cause.
-  - Unauthorized charges from an unknown source (e.g., "I see purchases I never made"), or large or escalating financial loss
-  - A safety feature that warns or alerts has failed (e.g., emergency alerts, fall detection, medication reminders), or the customer states that harm or a missed dose occurred.
-  - The entire service is down or unusable for many users or a whole team, not just one customer who cannot log in
-- High: A specific feature or action the customer needs is blocked, but the rest of the service still works, OR a workaround exists, OR the issue has a clear deadline or business impact (e.g., "I can't export my report and need it by 5pm", "I was charged twice").
-- Medium: A reported problem or a request that needs agent action, but is not blocking the customer right now (e.g., a bug with an easy workaround, a delayed notification, a settings change that needs support).
-- Low: Feature requests, suggestions, how-to or "where do I find" questions, general questions, and cosmetic issues with no impact on use.
+- Critical: An active or already-occurred situation involving:
+  - Account compromise or unauthorized access.
+  - Data loss or exposure, including data reported as missing, deleted, or gone. Treat the customer's statement as sufficient; do not require proof of the cause.
+  - Unauthorized charges from an unknown/unrecognized source, or severe/escalating financial loss.
+  - Failed safety-critical alerts/reminders that caused or are causing risk or harm.
+  - Service-wide or team-wide outage or unusability affecting multiple users.
+- High: A needed feature or action is blocked, or there is a clear deadline or significant business impact. A workaround makes it Medium unless a deadline or significant business impact exists. This includes known-source billing disputes such as duplicate, incorrect, or continued charges after cancellation.
+- Medium: A problem or request needs support action but does not currently block the customer, including performance issues, bugs with a workaround, delayed notifications, or settings changes.
+- Low: Feature requests, suggestions, how-to/where-to-find questions, general questions, or cosmetic issues with no impact on use.
 
 CATEGORY:
-- Billing: Payments, charges, refunds, invoices, subscriptions, or pricing.
-- Technical: Bugs, crashes, errors, broken features, or performance problems, as well as questions about how to use app features or change settings (e.g., language, notifications, display).
-- Account: Login, password, account access, managing their account or account settings
+- Billing: Payments, charges, refunds, invoices, subscriptions, cancellations of paid plans, or pricing.
+- Technical: Bugs, crashes, errors, broken features, performance problems, or other technical malfunctions of the app. Also includes questions about how a feature works when the question is primarily about its technical behavior.
+- Account: Login, password, account access/settings, profile management, permissions, roles, caregivers, members, or accessing/managing account information, health records, or shared information.
 - Feedback: Suggestions, product feedback, complaints, or compliments.
 - Other: Does not clearly fit another category.
 
 SENTIMENT:
-- Angry: Explicit hostility ,blame or judgment aimed at the company, ultimatums or threats, insults or sarcasm, ALL CAPS emphasis, or aggressive demands.
-- Frustrated: Annoyance, worry, stress, fear, disappointment, or distress about a problem, with no blame, judgment. This includes implied strain, such as a problem that persists after the customer already tried to fix it (e.g., "even after I reset my password twice"), especially combined with a plea for help ("please help").
-- Neutral: Factual or task-focused language with no clear emotional expression. This applies to routine questions and minor issues. It does not apply when the customer reports a serious event and urgently asks for protection or help.
-- Happy: Explicitly expressed satisfaction, gratitude, praise, or excitement. Politeness or thanks alone is not Happy.
+- Angry: Strong hostility, aggression, or condemnation toward the company, service, or situation, including explicit blame, insults, profanity, threats, ultimatums, aggressive demands, strong outrage, or statements such as "this is unacceptable."
+- Frustrated: Clear or implied dissatisfaction, annoyance, disappointment, worry, or distress about a problem or inconvenience. A repeated problem or delay alone does not imply frustration.
+- Neutral: Factual, informational, or task-focused language without clear emotion, including routine questions, requests, and straightforward problem reports. Do not infer Frustrated or Angry solely from seriousness, urgency, or a negative outcome.
+- Happy: Clear positive emotion such as satisfaction, praise, appreciation, gratitude, or excitement. Simple politeness, routine "thanks", or courteous language alone is not enough to classify a message as Happy.
 
 SUGGESTED REPLY:
-- Match the tone to the customer's sentiment. Do not be overly cheerful with an angry or frustrated customer.
-- Keep the suggested reply concise, professional, empathetic, and grounded in the message.
-- Do not promise a refund, credit, resolution time, or action unless the customer message explicitly establishes it.
-- If additional information is needed, ask for the minimum relevant information.
+- Match the customer's sentiment; be concise, professional, empathetic, and grounded in the message.
+- Do not promise refunds, credits, compensation, resolution times, or actions unless explicitly established.
+- If additional information is needed, ask only for the minimum relevant details.
 
 IMPORTANT RULES:
-- Use only information explicitly present in the customer message.
-- Never invent account details, policies, refunds, compensation, timelines, actions already taken, or technical facts.
-- Do not assume facts that are not stated.
-- Emotional tone must not raise urgency. Judge by impact only.
-- If a message matches both Critical and High criteria, choose Critical.
-- Angry takes priority when any explicit anger, hostility, blame, or confrontational/forceful demand is present.
-- Choose Technical only when the user is already in the product and a feature or system is failing.
+- Use only explicitly stated information; never invent or assume account details, policies, refunds, compensation, timelines, actions, or technical facts.
+- Emotional tone must not raise urgency; judge urgency by impact only.
+- Choose Account when the request is about accessing, viewing, downloading, sharing, or managing a user's account or health information.
+- Choose Technical when the request is about a malfunction, error, bug, performance issue, or the technical behavior of a feature.
+- If both Critical and High apply, choose Critical.
+- If Angry and Frustrated both apply, choose Angry when explicit hostility, blame, aggression, or confrontational demands are present.
 - Return exactly one value for each classification field.
-- Do not claim that an action has already been performed.
+- Do not claim an action has already been performed.
 
 """,
         ),
@@ -69,4 +68,3 @@ Customer message:
         ),
     ]
 )
-

@@ -65,7 +65,7 @@
   },
   {
     "id": 9,
-    "urgency": "High",
+    "urgency": "Medium",
     "category": "Technical",
     "sentiment": "Frustrated",
     "suggested_reply": "We’re sorry the pill scanner stopped recognizing medications after the update. We’ll help investigate the issue.",
@@ -129,7 +129,7 @@
   },
   {
     "id": 17,
-    "urgency": "High",
+    "urgency": "Medium",
     "category": "Technical",
     "sentiment": "Frustrated",
     "suggested_reply": "We’re sorry the video call kept dropping and interrupted the consultation. We’ll help investigate the connection issue.",
