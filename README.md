@@ -243,5 +243,5 @@ Customer message:
 - AI/LLM: LangChain + Groq
 - Validation: Pydantic
 - Language: Python
-- Evaluation: DeepEval + custom evaluation metrics
+- Evaluation: Custom evaluation metrics
 - Deployment: Vercel + Streamlit Community Cloud
