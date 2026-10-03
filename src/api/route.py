@@ -37,6 +37,7 @@ async def triage(
             detail="Failed to classify the message. Please try again.",
         )
 
+
 @router.post(
     "/triage_all",
     response_model=list[TriageResult],
@@ -69,4 +70,5 @@ async def triage_all(
                 detail=f"Failed to classify the message: {message}. Please try again.",
             )
         classified.append(result)
+    logger.info("triage stats: %s", llm.stats.summary())
     return classified

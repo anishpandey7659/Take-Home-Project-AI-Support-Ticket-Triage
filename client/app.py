@@ -1,6 +1,11 @@
 """Ticket classifier — AI Support Triage Dashboard (Streamlit).
 
 Run with:  streamlit run app.py
+
+Backend selection:
+  - If API_BASE_URL is set (in .streamlit/secrets.toml or as an environment variable),
+    that URL is used (e.g. your Vercel deployment).
+  - Otherwise the app falls back to a local server at http://localhost:8000/api/v1.
 """
 import copy
 import json
@@ -36,6 +41,27 @@ BADGE = {  # (text, background)
 }
 COLORS = {"Critical": "#8A2C2C", "High": "#C98A3B", "Medium": "#B9AE5A", "Low": "#6E9C80",
           "Angry": "#8A2C2C", "Frustrated": "#C98A3B", "Neutral": "#A9ACAF", "Happy": "#4C8566"}
+
+# ───────────────────────── Backend URL resolution ─────────────────────────
+LOCAL_API = "http://localhost:8000/api/v1"
+
+
+def default_api_url():
+    """Use the deployed (e.g. Vercel) URL if configured, otherwise fall back to localhost."""
+    url = ""
+    try:  # st.secrets raises if no secrets.toml exists
+        url = str(st.secrets.get("API_BASE_URL", "") or "").strip()
+    except Exception:  # noqa
+        pass
+    if not url:
+        url = (os.getenv("API_BASE_URL") or "").strip()
+    return url or LOCAL_API
+
+
+def is_local(url):
+    host = (urlparse(str(url).strip()).hostname or "").lower()
+    return host in ("localhost", "127.0.0.1", "0.0.0.0", "::1")
+
 
 CSS = f"""
 <style>
@@ -189,7 +215,7 @@ def ss_init():
     d = st.session_state
     d.setdefault("page", "Dashboard")
     d.setdefault("sel", None)
-    d.setdefault("api_url", st.secrets.get("API_BASE_URL", os.getenv("API_BASE_URL", "http://localhost:8000/api/v1")))
+    d.setdefault("api_url", default_api_url())  # hosted URL if configured, else localhost
     d.setdefault("timeout", 120)
     d.setdefault("mode", "Batch · one request (/triage_all)")
     d.setdefault("chunk", 5)
@@ -241,19 +267,24 @@ def api_post(path, body):
 
 
 def ping_backend():
-    """GET /api/hello on the backend's origin. Doubles as a wake-up call for sleeping hosts (e.g. Vercel, Render).
-    Returns the URL that was called so the UI can display it.
+    """Health check for the configured backend. Returns the URL that was called.
+
+    - Local server: GET /openapi.json (fast, no wake-up needed).
+    - Hosted server (e.g. Vercel, Render): GET /api/hello, which doubles as a wake-up call
+      for sleeping hosts.
     """
     u = urlparse(st.session_state.api_url.strip())
     if not u.scheme or not u.netloc:
-        raise ApiError("The API base URL is not valid. Set it under API connection .")
-    url = f"{u.scheme}://{u.netloc}/api/hello"
+        raise ApiError("The API base URL is not valid. Set it under API connection.")
+    origin = f"{u.scheme}://{u.netloc}"
+    local = is_local(origin)
+    url = origin + ("/openapi.json" if local else "/api/hello")
     try:
-        r = requests.get(url, timeout=60)  # cold starts on free hosts can be slow
+        r = requests.get(url, timeout=5 if local else 60)  # cold starts on free hosts can be slow
     except requests.exceptions.ConnectionError:
         raise ApiError(f"Cannot reach {url}. Check that the backend is running and the URL under API connection is correct.")
     except requests.exceptions.Timeout:
-        raise ApiError("The backend didn't respond in 60 seconds. Click the button again; it may still be waking up.")
+        raise ApiError("The backend didn't respond in time. Click the button again; it may still be waking up.")
     except requests.RequestException as e:
         raise ApiError(f"Request failed: {e}")
     if r.status_code != 200:
@@ -737,8 +768,16 @@ def page_load_data():
     header("Load data", "Load a batch of customer messages, or try a single message.")
 
     # ── Backend health check / wake-up ──
-    st.info("Using Vercel for the backend, so it has a sleep problem. "
-            "Run this button to wake it up and start exploring.")
+    if is_local(st.session_state.api_url):
+        st.info("No hosted backend URL is configured, so the app is using your local server at "
+                f"`{st.session_state.api_url}`. Start it first (e.g. `uvicorn main:app --reload`), "
+                "then press Check backend.")
+    else:
+        st.info(
+            "The backend runs on a free-tier service and may sleep when inactive. "
+            "The first request can take around 1 minute to wake it up. "
+            "Please wake up and check the backend first before exploring the app."
+        )
     if st.button("Check backend", type="primary", key="ping_backend"):
         with st.spinner("Contacting the backend… the first request can take a while if it was asleep."):
             try:

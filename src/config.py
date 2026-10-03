@@ -4,8 +4,12 @@ from pydantic import SecretStr
 class Settings(BaseSettings):
     groq_api_key: SecretStr = SecretStr("")
     groq_api_key2: SecretStr = SecretStr("")
+    
     groq_model: str = ''
+    fallback_model1: str = ''
+
     groq_model2: str = ''
+    fallback_model2: str = ''
 
     rpm: int = 30
     max_concurrency: int = 2
