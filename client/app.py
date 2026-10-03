@@ -19,7 +19,8 @@ import altair as alt
 import pandas as pd
 import requests
 import streamlit as st
-
+import logging
+log = logging.getLogger("triage")
 st.set_page_config(
     page_title="Ticket classifier · Support Triage",
     page_icon="🌲",
@@ -239,31 +240,38 @@ MODES = ["Batch · one request (/triage_all)", "Per ticket · isolates failures 
 class ApiError(Exception):
     pass
 
-
 def api_post(path, body):
     # tolerate a pasted full endpoint URL
     base = re.sub(r"/triage(_all)?$", "", st.session_state.api_url.strip().rstrip("/"))
     try:
         r = requests.post(base + path, json=body, timeout=st.session_state.timeout)
     except requests.exceptions.ConnectionError:
-        raise ApiError(f"Cannot reach the triage API at {base}. Check that it is running and the URL under Load data → API connection is correct.")
+        log.error("Cannot reach backend at %s", base + path)
+        raise ApiError("Cannot reach the triage service right now. Please try again in a moment.")
     except requests.exceptions.Timeout:
-        raise ApiError("The triage API timed out. Retry, or raise the timeout under Load data → API connection.")
+        log.error("Timeout calling %s", base + path)
+        raise ApiError("The triage service timed out. Please retry.")
     except requests.RequestException as e:
-        raise ApiError(f"Request failed: {e}")
+        log.error("Request failed for %s: %s", base + path, e)
+        raise ApiError("The request to the triage service failed. Please try again.")
     if r.status_code != 200:
+        log.error("HTTP %s from POST %s: %s", r.status_code, base + path, r.text[:300])
         try:
             d = r.json().get("detail")
         except (ValueError, AttributeError):
             d = None
         if isinstance(d, list):  # FastAPI validation errors
             d = "; ".join(str(x.get("msg", x)) if isinstance(x, dict) else str(x) for x in d)
-        hint = " Check the API base URL (router prefix) under Load data → API connection." if r.status_code == 404 else ""
-        raise ApiError(f"{d or 'Unexpected response'} (HTTP {r.status_code} from POST {base + path}).{hint}")
+        if r.status_code == 404:
+            d = "The triage service is temporarily unavailable"
+        elif r.status_code >= 500:
+            d = "The triage service had an internal error"
+        d = str(d or "Unexpected response").replace(base, "[backend]")
+        raise ApiError(f"{d} (HTTP {r.status_code}). Please try again later.")
     try:
         return r.json()
     except ValueError:
-        raise ApiError("The API returned a response that is not valid JSON.")
+        raise ApiError("The triage service returned an invalid response.")
 
 
 def ping_backend():
@@ -280,15 +288,18 @@ def ping_backend():
     local = is_local(origin)
     url = origin + ("/openapi.json" if local else "/api/hello")
     try:
-        r = requests.get(url, timeout=5 if local else 60)  # cold starts on free hosts can be slow
+        r = requests.get(url, timeout=5 if local else 60)
     except requests.exceptions.ConnectionError:
-        raise ApiError(f"Cannot reach {url}. Check that the backend is running and the URL under API connection is correct.")
+        log.error("Cannot reach %s", url)
+        raise ApiError("Cannot reach the backend. It may be starting up, so try again in a moment.")
     except requests.exceptions.Timeout:
         raise ApiError("The backend didn't respond in time. Click the button again; it may still be waking up.")
     except requests.RequestException as e:
-        raise ApiError(f"Request failed: {e}")
+        log.error("Ping failed for %s: %s", url, e)
+        raise ApiError("The backend check failed. Please try again.")
     if r.status_code != 200:
-        raise ApiError(f"Backend responded with HTTP {r.status_code} from GET {url}.")
+        log.error("Ping got HTTP %s from %s", r.status_code, url)
+        raise ApiError(f"The backend responded with an error (HTTP {r.status_code}).")
     return url
 
 
@@ -544,7 +555,7 @@ def page_tickets():
         if bad:
             st.error(f"{len(bad)} ticket(s) failed. Latest error: {bad[-1]['error']}")
             if st.session_state.mode == MODES[0]:
-                st.caption("Batch mode fails as a whole when one message fails. Switch to per-ticket mode under Load data → API connection to isolate it.")
+                st.caption("Batch mode fails as a whole when one message fails. Retry the failed tickets to try again.")
     f = st.columns([2.2, 1, 1, 1, 1.2])
     q = f[0].text_input("Search", placeholder="Search messages, IDs, replies", label_visibility="collapsed")
     fu = f[1].multiselect("Urgency", URG, placeholder="Urgency", label_visibility="collapsed")
