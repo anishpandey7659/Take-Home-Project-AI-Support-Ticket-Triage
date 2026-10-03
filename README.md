@@ -237,6 +237,17 @@ Customer message:
 
 - **Continuous Evaluation:** Re-ran the evaluation after each prompt change, analyzed the results, and repeated the process to improve **classification accuracy and consistency**.
 
+
+## What I would improve with more time
+
+With more time, I would expand the evaluation dataset beyond the 20 provided messages and add more edge cases, especially cases where urgency and sentiment can easily be confused. I would also improve the evaluation pipeline so that prompt changes can be compared automatically across multiple test runs.
+
+## One challenge I hit
+
+The main challenge was Groq's rate limits. When I initially tried processing multiple messages concurrently, I started getting rate-limit errors. So I changed the architecture to use an async queue with worker slots, separate API keys, fallback models, cooldowns, and limited retries. If I had more time, I'd expand the evaluation dataset and add more edge cases, especially around High vs Critical and Angry vs Frustrated, because those were the main areas where the model could be inconsistent.
+
+
+
 ##  Tech Stack
 - Frontend: Streamlit — deployed on Streamlit Community Cloud
 - Backend: FastAPI — deployed on Vercel
